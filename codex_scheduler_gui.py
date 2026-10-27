@@ -199,7 +199,7 @@ class SchedulerGUI(tk.Tk):
     def install(self) -> None:
         try:
             args = self._install_args()
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, OSError) as exc:
             messagebox.showerror("设置无效", str(exc))
             return
         self._run_async(args, "已保存并启用定时任务")
@@ -210,7 +210,7 @@ class SchedulerGUI(tk.Tk):
         try:
             config = self._config_from_ui()
             scheduler.save_config(config)
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, OSError) as exc:
             messagebox.showerror("设置无效", str(exc))
             return
         self._run_async([sys.executable, str(CLI), "run"], "已请求发送消息")
@@ -219,7 +219,7 @@ class SchedulerGUI(tk.Tk):
         try:
             config = self._config_from_ui()
             scheduler.save_config(config)
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, OSError) as exc:
             messagebox.showerror("设置无效", str(exc))
             return
         self._run_async([sys.executable, str(CLI), "run", "--dry-run"], "预览完成")

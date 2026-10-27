@@ -7,7 +7,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Codex Scheduler</string>
 	<key>CFBundleExecutable</key>
-	<string>Codex Scheduler</string>
+	<string>CodexScheduler</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.logic6304.codex-scheduler</string>
 	<key>CFBundleInfoDictionaryVersion</key>
