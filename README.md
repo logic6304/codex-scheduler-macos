@@ -1,96 +1,80 @@
-# Codex Scheduler for macOS
+# Codex 定时唤醒（macOS）
 
-一个带 macOS GUI 的 Codex 后台定时器。它在指定时间由 `launchd` 启动，通过 Codex 官方桌面深链接打开新本地聊天，预填并发送一条很短的文本（默认 `hello`）。适合做个人自动化实验；它不使用 API key，也不读取或保存登录凭据。
+这是一个给普通用户使用的 macOS 小工具：选择一个时间，Mac 会在后台打开 Codex 新聊天，填入一条短消息并提交。默认消息是 `hello`。
 
-仓库同时提供 `Codex Scheduler.app` 图形界面、`open_gui.command` 启动脚本和原来的 Python CLI。GUI 可以设置时间、日期、文本、工作区、创建方式，并执行启用、预览、立即发送和停用。
+## 下载
 
-## 工作方式
+打开 [GitHub Releases](https://github.com/logic6304/codex-scheduler-macos/releases)，下载最新的 `Codex-Scheduler-macOS-*.zip`，解压整个文件夹。
 
-1. `install` 将配置写入 `~/Library/Application Support/codex-scheduler/config.json`。
-2. 它生成一个用户级 LaunchAgent：`~/Library/LaunchAgents/com.codex-scheduler.daily.plist`。
-3. 到时间后，任务在当前用户的 GUI 会话中运行 `open -g codex://new?...`，再用一次 `osascript` 回车提交已预填的文本。
+不要只把 `Codex Scheduler.app` 单独拖走。这个版本的 App 外壳需要和同一文件夹里的 Python 脚本一起使用。
 
-Codex 官方文档提供了 `codex://new?prompt=...` 深链接，但它只负责打开新聊天并预填 composer，不会自动发送；脚本因此只把回车交给当前 Codex 窗口。应用可能会短暂出现在前台，任务进程本身不会打开终端窗口。
+电脑需要安装 Python 3。没有安装时，可以从 [python.org](https://www.python.org/downloads/macos/) 安装 macOS 版 Python。
 
-## 安装
+## 第一次使用
 
-需要 macOS、Python 3.9+，并先在 ChatGPT/Codex 中完成登录。项目目录中运行：
+1. 双击文件夹里的 **Codex Scheduler.app**。
+2. 如果 macOS 阻止打开，右键 App，选择“打开”，再确认一次。
+3. 在“时间”中输入目标时间，例如 `07:00`。
+4. “日期”留空表示每天运行；填写 `2026-11-01` 表示只运行一次。
+5. “发送内容”保持 `hello`，或改成你需要的短文本。
+6. “创建方式”保持为 `deeplink`，选择工作区是可选的。
+7. 点击 **保存设置并启用**。
+8. 界面下方必须看到“后台任务：已加载”，并显示下一次运行时间，才表示设置成功。
 
-最方便的方式是双击项目里的 `Codex Scheduler.app`。如果 Finder 没有直接打开权限，可以双击 `open_gui.command`，或者在终端运行：
+只填写时间不会自动保存，也不会安装后台任务。
 
-```bash
-python3 codex_scheduler_gui.py
-```
+如果你在当天 07:00 之后才点击启用，下一次运行会是第二天 07:00；想立即验证请使用“立即发送”。
 
-GUI 的“保存并启用”按钮会写入 LaunchAgent；“立即发送”会先保存当前设置，再请求一次真实发送。首次使用建议先点“预览脚本”。
+第一次建议先点击 **预览脚本**。它只显示将要执行的内容，不会打开 Codex，也不会发送消息。确认设置后，可以点击 **立即发送** 做一次真实测试；按钮会先询问确认。
 
-```bash
-python3 codex_scheduler.py install --time 08:30
-```
+## macOS 权限
 
-常用选项：
+首次执行时，macOS 可能会提示权限：
 
-```bash
-# 每天 23:10 发送自定义文本
-python3 codex_scheduler.py install --time 23:10 --prompt hello
+- 在“系统设置 → 隐私与安全性 → 辅助功能”中允许你启动程序的终端或 Python 控制 ChatGPT/Codex；
+- 如果出现自动化提示，允许它控制“系统事件”和 ChatGPT/Codex。
 
-# 指定 ChatGPT.app；如果你的应用名是 Codex，可改成 --app Codex
-python3 codex_scheduler.py install --time 08:30 --app ChatGPT
+OpenAI 的官方说明也要求 macOS 桌面自动化使用辅助功能权限。[查看官方说明](https://developers.openai.com/training/walkthroughs/using-your-computer-and-browser#use-computer-browser-or-chrome)
 
-# 只在某个日期运行一次
-python3 codex_scheduler.py install --time 08:30 --date 2026-12-01
+程序默认使用 Codex 官方 `codex://new?prompt=...` 深链接创建新本地聊天，再提交预填文本。[查看官方命令文档](https://learn.chatgpt.com/docs/app/commands#deep-links)
 
-# 如果希望新聊天附着到指定本地工作区
-python3 codex_scheduler.py install --time 08:30 --workspace "$HOME/Documents/demo"
-```
+## 7:00 没有运行时怎么检查
 
-首次运行时，在“系统设置 → 隐私与安全性 → 辅助功能”中允许你实际运行该命令的终端或 Python 宿主控制 ChatGPT/Codex。若 macOS 还提示自动化权限，请允许该终端控制“系统事件”和目标应用。OpenAI 的官方说明也指出，macOS 桌面自动化需要辅助功能权限。[OpenAI 官方说明](https://developers.openai.com/training/walkthroughs/using-your-computer-and-browser#use-computer-browser-or-chrome)
-
-默认使用 Codex 深链接，不需要猜测新聊天快捷键。官方文档列出了 `codex://new?prompt=...` 和 `codex://threads/new`；同时明确 `Cmd+Option+N` 是 ChatGPT Quick chat，不是 Codex standalone chat。[桌面命令文档](https://learn.chatgpt.com/docs/app/commands#deep-links)
-
-如果你的旧版本没有深链接，可切换到键盘备用方案。默认备用快捷键是 `cmd+option+n`；为提高键盘模拟兼容性，发送内容建议使用短的 ASCII 文本，例如 `hello`：
-
-```bash
-python3 codex_scheduler.py install --time 08:30 --method keyboard --shortcut cmd+n
-```
-
-## 验证和管理
-
-先只查看将要执行的 AppleScript，不会打开应用或消耗消息：
-
-```bash
-python3 codex_scheduler.py run --dry-run
-```
-
-安装后查看状态和日志：
+在工具文件夹中打开终端，运行：
 
 ```bash
 python3 codex_scheduler.py status
-tail -f "$HOME/Library/Logs/codex-scheduler.log"
 ```
 
-卸载定时任务：
+正常情况应看到：
+
+```text
+配置文件：已创建
+LaunchAgent 文件：已创建
+后台任务：已加载
+下一次运行：...
+```
+
+如果显示“未创建”或“未加载”，重新打开 GUI，确认时间后点击 **保存设置并启用**。如果仍然失败，把 GUI 下方的输出和下面的日志内容一起保留：
+
+```bash
+tail -100 "$HOME/Library/Logs/codex-scheduler.log"
+launchctl print "gui/$(id -u)/com.codex-scheduler.daily"
+```
+
+Mac 需要处于已登录的桌面会话。睡眠、关机、注销期间不会在屏幕上执行；唤醒后 macOS 可能会延迟执行。Codex 需要保持登录状态。
+
+## 停用
+
+打开 GUI 点击 **停用定时任务**，或者在终端运行：
 
 ```bash
 python3 codex_scheduler.py uninstall
 ```
 
-## 限制
+## 重要限制
 
-- 这是个人桌面自动化，不是 Codex 官方 API 或官方调度接口。应用更新、区域版本、登录状态和快捷键改变都可能影响结果。
-- macOS 睡眠、注销或没有 GUI 会话时，执行时间可能延迟；LaunchAgent 会在用户登录后重新加载。
-- “发送成功”只表示 `osascript` 没有报告错误，不代表服务端已经接受消息或一定改变了账户限额。请按自己的账户条款和平台规则使用，不要高频循环发送。
-- 任何需要真实 UI 行为的改动，都应先用 `run --dry-run`，再在一个不会影响工作的时间手动执行一次。
-
-## 发布到 GitHub
-
-建议先在本地验证，再初始化仓库：
-
-```bash
-python3 -m unittest discover -s tests -v
-git init
-git add README.md codex_scheduler.py tests .gitignore LICENSE
-git commit -m "Add macOS Codex scheduler"
-```
-
-MIT License，见 [LICENSE](LICENSE)。
+- 这是个人桌面自动化，不是 Codex 官方调度 API。
+- 应用更新、权限、登录状态或深链接行为变化都可能影响执行。
+- 日志中的“prompt submitted”只表示本机自动化没有报错，不保证服务端已经接受消息，也不保证一定触发或改变五小时限额。
+- 请按自己的账户条款使用，不要高频循环发送。

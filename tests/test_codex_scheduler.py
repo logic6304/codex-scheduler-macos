@@ -58,6 +58,10 @@ class SchedulerTests(unittest.TestCase):
         self.assertIn("key code 36", script)
         self.assertNotIn("keystroke promptText", script)
 
+    def test_next_run_text_is_human_readable(self):
+        value = scheduler.next_run_text(dict(scheduler.DEFAULT_CONFIG, time="07:00"))
+        self.assertRegex(value, r"\d{4}-\d{2}-\d{2} 07:00")
+
     def test_dry_run_does_not_call_processes(self):
         with patch("codex_scheduler.subprocess.run") as run:
             result = scheduler.run_once(dict(scheduler.DEFAULT_CONFIG), dry_run=True)

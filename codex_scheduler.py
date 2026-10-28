@@ -228,8 +228,18 @@ def install(config: dict[str, Any]) -> None:
 
     # Unload an older copy if present, then load the new schedule. A missing
     # job is expected on first install, so the first command is best-effort.
-    subprocess.run(["launchctl", "bootout", f"gui/{os.getuid()}", str(PLIST_PATH)], check=False, capture_output=True)
-    subprocess.run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(PLIST_PATH)], check=True)
+    domain = f"gui/{os.getuid()}"
+    subprocess.run(["launchctl", "bootout", domain, str(PLIST_PATH)], check=False, capture_output=True)
+    try:
+        subprocess.run(["launchctl", "bootstrap", domain, str(PLIST_PATH)], check=True, capture_output=True, text=True)
+        subprocess.run(["launchctl", "print", f"{domain}/{LABEL}"], check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "未知错误").strip()
+        logging.error("launchd install failed: %s", detail)
+        raise RuntimeError(
+            "无法启用 macOS 后台任务。请确认当前用户已登录桌面，并允许终端/Python 的自动化权限。\n"
+            f"launchctl: {detail}"
+        ) from exc
     logging.info("installed %s at %s", LABEL, config["time"])
     print(f"已安装：{PLIST_PATH}")
     print(f"日志：{LOG_PATH}")
@@ -287,13 +297,33 @@ def run_once(config: dict[str, Any], dry_run: bool = False) -> int:
 
 
 def status() -> None:
-    print(f"配置：{CONFIG_PATH} {'存在' if CONFIG_PATH.exists() else '不存在'}")
-    print(f"任务：{PLIST_PATH} {'存在' if PLIST_PATH.exists() else '未安装'}")
-    if CONFIG_PATH.exists():
-        config = load_config()
-        print(f"时间：{config['date'] + ' ' if config.get('date') else '每天 '}{config['time']}")
-        print(f"应用：{resolve_app(str(config['app']))}")
-        print(f"文本：{config['prompt']}")
+    print(f"配置文件：{'已创建' if CONFIG_PATH.exists() else '未创建'}")
+    print(f"LaunchAgent 文件：{'已创建' if PLIST_PATH.exists() else '未创建'}")
+    domain = f"gui/{os.getuid()}"
+    loaded = subprocess.run(["launchctl", "print", f"{domain}/{LABEL}"], capture_output=True, text=True, check=False).returncode == 0
+    print(f"后台任务：{'已加载' if loaded else '未加载'}")
+    if not CONFIG_PATH.exists():
+        print("下一步：在 GUI 点击“保存设置并启用”。")
+        return
+    config = load_config()
+    next_run = next_run_text(config)
+    print(f"计划：{config['date'] + ' ' if config.get('date') else '每天 '}{config['time']}")
+    print(f"下一次运行：{next_run}")
+    print(f"应用：{resolve_app(str(config['app']))}")
+    print(f"文本：{config['prompt']}")
+
+
+def next_run_text(config: dict[str, Any]) -> str:
+    now = dt.datetime.now().astimezone()
+    hour, minute = parse_time(str(config["time"]))
+    if config.get("date"):
+        year, month, day = parse_date(str(config["date"]))
+        scheduled = now.replace(year=year, month=month, day=day, hour=hour, minute=minute, second=0, microsecond=0)
+        return scheduled.strftime("%Y-%m-%d %H:%M %Z") if scheduled >= now else "已过期（请重新设置日期）"
+    scheduled = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if scheduled <= now:
+        scheduled += dt.timedelta(days=1)
+    return scheduled.strftime("%Y-%m-%d %H:%M %Z")
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -336,7 +366,11 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
         setup_logging()
-        install(config)
+        try:
+            install(config)
+        except (RuntimeError, OSError, ValueError) as exc:
+            print(f"安装失败：{exc}", file=sys.stderr)
+            return 1
         return 0
     if args.command == "uninstall":
         uninstall()

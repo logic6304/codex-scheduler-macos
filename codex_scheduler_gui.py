@@ -26,7 +26,7 @@ CLI = ROOT / "codex_scheduler.py"
 class SchedulerGUI(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Codex Scheduler")
+        self.title("Codex 定时唤醒")
         self.geometry("720x680")
         self.minsize(640, 600)
         self.configure(bg="#f4f6fb")
@@ -68,15 +68,15 @@ class SchedulerGUI(tk.Tk):
         outer.rowconfigure(3, weight=1)
         outer.rowconfigure(4, weight=1)
 
-        ttk.Label(outer, text="Codex Scheduler", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(outer, text="Codex 定时唤醒", style="Title.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             outer,
-            text="在指定时间打开 Codex 新聊天并发送一条短消息。后台由 macOS launchd 管理。",
+            text="设置一次，macOS 会在后台按时打开 Codex 新聊天并发送短消息。",
             style="Subtitle.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(4, 16))
         ttk.Label(outer, textvariable=self.status_var, style="Status.TLabel").grid(row=2, column=0, sticky="ew", pady=(0, 14))
 
-        card = ttk.LabelFrame(outer, text="计划设置", style="Card.TLabelframe")
+        card = ttk.LabelFrame(outer, text="定时任务", style="Card.TLabelframe")
         card.grid(row=3, column=0, sticky="nsew")
         card.columnconfigure(1, weight=1)
 
@@ -105,10 +105,17 @@ class SchedulerGUI(tk.Tk):
         action_bar = ttk.Frame(card)
         action_bar.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(18, 0))
         action_bar.columnconfigure(0, weight=1)
-        ttk.Button(action_bar, text="保存并启用", style="Primary.TButton", command=self.install).grid(row=0, column=0, sticky="w")
+        ttk.Button(action_bar, text="保存设置并启用", style="Primary.TButton", command=self.install).grid(row=0, column=0, sticky="w")
         ttk.Button(action_bar, text="立即发送", command=self.run_now).grid(row=0, column=1, padx=(8, 0))
         ttk.Button(action_bar, text="预览脚本", command=self.preview).grid(row=0, column=2, padx=(8, 0))
-        ttk.Button(action_bar, text="停用", style="Danger.TButton", command=self.uninstall).grid(row=0, column=3, padx=(8, 0))
+        ttk.Button(action_bar, text="停用定时任务", style="Danger.TButton", command=self.uninstall).grid(row=0, column=3, padx=(8, 0))
+
+        ttk.Label(
+            card,
+            text="注意：只填写时间不会生效，必须点击“保存设置并启用”。保存成功后可在下方看到后台任务状态。",
+            foreground="#9a5b18",
+            wraplength=620,
+        ).grid(row=8, column=0, columnspan=3, sticky="w", pady=(12, 0))
 
         log_card = ttk.LabelFrame(outer, text="最近输出", style="Card.TLabelframe")
         log_card.grid(row=4, column=0, sticky="nsew", pady=(14, 0))
