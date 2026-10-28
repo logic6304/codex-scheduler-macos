@@ -1,4 +1,22 @@
 #!/bin/zsh
 set -eu
-cd "$(dirname "$0")"
-exec python3 codex_scheduler_gui.py
+
+PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
+PYTHON=""
+for candidate in \
+  "/opt/homebrew/bin/python3" \
+  "/usr/local/bin/python3" \
+  "/Library/Frameworks/Python.framework/Versions/Current/bin/python3" \
+  "/usr/bin/python3"; do
+  if [[ -x "$candidate" ]]; then
+    PYTHON="$candidate"
+    break
+  fi
+done
+
+if [[ -z "$PYTHON" ]]; then
+  /usr/bin/osascript -e 'display alert "Codex 定时唤醒需要 Python 3" message "请先安装 Python 3，然后重新打开。"'
+  exit 1
+fi
+
+exec "$PYTHON" "$PROJECT_ROOT/codex_scheduler_gui.py"

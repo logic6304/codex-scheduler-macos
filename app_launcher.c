@@ -13,9 +13,10 @@ static void trim_directory(char *path) {
 }
 
 int main(void) {
+    char raw_executable[PATH_MAX];
     char executable[PATH_MAX];
-    uint32_t size = sizeof(executable);
-    if (_NSGetExecutablePath(executable, &size) != 0 || realpath(executable, executable) == NULL) {
+    uint32_t size = sizeof(raw_executable);
+    if (_NSGetExecutablePath(raw_executable, &size) != 0 || realpath(raw_executable, executable) == NULL) {
         return 1;
     }
 
@@ -39,6 +40,9 @@ int main(void) {
     };
     for (const char **python = python_candidates; *python != NULL; ++python) {
         if (access(*python, X_OK) == 0) {
+            if (getenv("CODEX_SCHEDULER_SELF_TEST") != NULL) {
+                execl(*python, *python, script, "--self-test", (char *)NULL);
+            }
             execl(*python, *python, script, (char *)NULL);
             return 1;
         }
